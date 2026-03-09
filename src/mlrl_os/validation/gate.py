@@ -29,6 +29,7 @@ KNOWN_ALGORITHMS: frozenset[str] = frozenset({
     "random_forest",
     "extra_trees",
     "linear",
+    "lstm",
 })
 
 KNOWN_METRICS: frozenset[str] = frozenset({

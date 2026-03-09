@@ -69,10 +69,12 @@ def create_app(settings: MLRLSettings | None = None) -> FastAPI:
     from mlrl_os.api.data_routes import router as data_router
     from mlrl_os.api.experiment_routes import router as experiment_router
     from mlrl_os.api.model_routes import router as model_router
+    from mlrl_os.streaming.ws_inference import router as ws_router
 
     app.include_router(data_router, prefix="/api/v1/datasets", tags=["datasets"])
     app.include_router(experiment_router, prefix="/api/v1/experiments", tags=["experiments"])
     app.include_router(model_router, prefix="/api/v1/models", tags=["models"])
     app.include_router(config_router, prefix="/api/v1/config", tags=["config"])
+    app.include_router(ws_router, prefix="/ws/v1", tags=["streaming"])
 
     return app

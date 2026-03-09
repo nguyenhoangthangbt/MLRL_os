@@ -10,6 +10,7 @@ KNOWN_ALGORITHMS: list[str] = [
     "random_forest",
     "extra_trees",
     "linear",
+    "lstm",
 ]
 
 
@@ -76,6 +77,7 @@ def default_registry() -> AlgorithmRegistry:
     from mlrl_os.models.algorithms.extra_trees import ExtraTreesAlgorithm
     from mlrl_os.models.algorithms.lightgbm import LightGBMAlgorithm
     from mlrl_os.models.algorithms.linear import LinearAlgorithm
+    from mlrl_os.models.algorithms.lstm import LSTMAlgorithm
     from mlrl_os.models.algorithms.random_forest import RandomForestAlgorithm
     from mlrl_os.models.algorithms.xgboost import XGBoostAlgorithm
 
@@ -85,4 +87,5 @@ def default_registry() -> AlgorithmRegistry:
     registry.register("random_forest", RandomForestAlgorithm)
     registry.register("extra_trees", ExtraTreesAlgorithm)
     registry.register("linear", LinearAlgorithm)
+    registry.register("lstm", LSTMAlgorithm)
     return registry

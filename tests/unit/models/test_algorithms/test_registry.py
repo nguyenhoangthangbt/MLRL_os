@@ -87,11 +87,11 @@ class TestDefaultRegistry:
     """Tests for default_registry() factory function."""
 
     def test_default_registry_has_all_known_algorithms(self) -> None:
-        """default_registry() returns a registry with all 5 built-in algorithms."""
+        """default_registry() returns a registry with all 6 built-in algorithms."""
         reg = default_registry()
 
         available = reg.list_available()
-        assert len(available) == 5
+        assert len(available) == 6
 
         for algo_name in KNOWN_ALGORITHMS:
             assert reg.has(algo_name), f"Missing algorithm: {algo_name}"
