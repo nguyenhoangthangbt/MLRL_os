@@ -92,6 +92,7 @@ src/mlrl_os/
 ├── features/                    # Feature engineering
 │   ├── time_series.py           # Windowing, lag, rolling, trend, ratio
 │   ├── entity.py                # Entity state, node state, system state, derived
+│   ├── target_derivation.py     # Derived targets (sla_breach, delay_severity, wait_ratio_class)
 │   ├── detection.py             # Problem type auto-detection
 │   └── store.py                 # Feature definition registry
 │
@@ -291,6 +292,40 @@ ML/RL OS consumes SimOS's 5-layer ML export (export_version 3.0):
 
 SimOS exports via: `POST /api/v1/simulations/{job_id}/export-ml` or file export from Web UI.
 
+### SimOS API Access (Local Dev)
+
+SimOS requires two headers for programmatic API access:
+
+```bash
+# Required headers for all SimOS API calls
+-H "X-API-Key: sk-premium-test-003"    # Premium tier test account
+-H "X-SimOS-Client: web"               # Bypasses api_access tier gate
+```
+
+The `X-SimOS-Client: web` header is checked by `require_web_client()` in `billing/dependencies.py`. Without it, requests are rejected with "Direct API access is not available on your current plan" even with a valid API key (all tiers have `api_access=False`).
+
+**Smoke test workflow:**
+```bash
+# 1. Get template config
+curl -s http://localhost:8000/api/v1/templates/healthcare_er \
+  -H "X-API-Key: sk-premium-test-003" -H "X-SimOS-Client: web"
+
+# 2. Submit simulation (POST the config object from step 1)
+curl -s -X POST http://localhost:8000/api/v1/simulations \
+  -H "X-API-Key: sk-premium-test-003" -H "X-SimOS-Client: web" \
+  -H "Content-Type: application/json" -d '<config json>'
+
+# 3. Poll status until "completed"
+curl -s http://localhost:8000/api/v1/simulations/{job_id} \
+  -H "X-API-Key: sk-premium-test-003" -H "X-SimOS-Client: web"
+
+# 4. Export ML data (5-layer export v3.0)
+curl -s -X POST http://localhost:8000/api/v1/simulations/{job_id}/export-ml?bucket_seconds=60 \
+  -H "X-API-Key: sk-premium-test-003" -H "X-SimOS-Client: web"
+```
+
+**Test accounts:** See `simulation_os/docs_v2/TEST_ACCOUNTS.md` for all keys (free/pro/premium/admin).
+
 ## Environment Variables
 
 All prefixed with `MLRL_`.
@@ -388,9 +423,10 @@ Each instrument operates independently. SimOS runs without ML/RL OS. ML/RL OS ru
 
 | Phase | Status | Content |
 |---|---|---|
-| Phase 1: Core Engine | Not started | Types, data loaders, features, config, validation, models, evaluation, runner |
-| Phase 2: API Layer | Not started | FastAPI endpoints |
-| Phase 3: Web UI | Not started | Experiment Builder, results dashboard |
-| Phase 4: Polish | Not started | CLI, HTML reports, documentation |
+| Phase 1: Core Engine | **DONE** | Types, data loaders, features, config, validation, models (5 algorithms), evaluation, runner — 416 tests |
+| Phase 2: API Layer | **DONE** | FastAPI app factory, 18 REST endpoints, 28 API tests |
+| Phase 3: Web UI | **DONE** | React 19 + Vite + Tailwind, 7-step Builder, Dashboard, Dataset/Experiment/Model pages (22 files) |
+| Phase 4: CLI & Polish | **DONE** | CLI (serve, run, validate, datasets list/import), TypeScript type-checks clean, Vite builds clean |
+| Smoke Test | **DONE** | healthcare_er template → SimOS export → SimosLoader → DatasetRegistry → ExperimentRunner → LightGBM entity classification (560 samples, 88 features, 0.6s) |
 
-Current phase: **Phase 1 — Core Engine**, starting with core types and data ingestion.
+Current phase: **v0.1 complete.** Next: v0.2 (RL training, time-series smoke test, multi-algorithm comparison).

@@ -4,7 +4,7 @@
 >
 > This document is the authority on terminology and design philosophy. Every other design document inherits from it. If a term is used elsewhere and not defined here, that is a bug.
 >
-> Last updated: 2026-03-09.
+> Last updated: 2026-03-10.
 
 ---
 

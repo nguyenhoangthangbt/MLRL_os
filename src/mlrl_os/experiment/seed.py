@@ -22,7 +22,7 @@ def seed_hash(name: str, global_seed: int) -> int:
         Deterministic integer seed derived from name + global_seed.
     """
     data = f"{name}:{global_seed}".encode()
-    digest = hashlib.sha256(data).digest()[:8]
+    digest = hashlib.sha256(data).digest()[:4]
     return int.from_bytes(digest, byteorder="big")
 
 

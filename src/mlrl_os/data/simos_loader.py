@@ -91,7 +91,13 @@ class SimosSchemaAdapter:
         "episode_done": "done",
         "episode_status": "status",
         "episode_total_time": "total_time",
+        "attr_priority_class": "priority_class",
     }
+
+    # Top-level trajectory fields that are passed through with their
+    # original name (SLA thresholds, domain enrichment flags).
+    # These are template-specific and cannot be enumerated statically.
+    _TRAJECTORY_PASSTHROUGH_PREFIXES = ("sla_", "domain_")
 
     # ── State dict mapping ──────────────────────────────────────────
     STATE_FIELD_MAP: dict[str, str] = {
@@ -170,8 +176,22 @@ class SimosSchemaAdapter:
         return None
 
     def map_trajectory_top_level(self, simos_name: str) -> str | None:
-        """Map a top-level trajectory field to its canonical name."""
-        return self.TRAJECTORY_FIELD_MAP.get(simos_name)
+        """Map a top-level trajectory field to its canonical name.
+
+        Fields with known prefixes (``sla_``, ``domain_``) are passed
+        through with their original name since they are template-specific
+        and cannot be enumerated statically.
+        """
+        canonical = self.TRAJECTORY_FIELD_MAP.get(simos_name)
+        if canonical is not None:
+            return canonical
+
+        # Passthrough: SLA thresholds and domain enrichment flags
+        for prefix in self._TRAJECTORY_PASSTHROUGH_PREFIXES:
+            if simos_name.startswith(prefix):
+                return simos_name
+
+        return None
 
     def map_state_field(self, simos_name: str) -> str | None:
         """Map a state-dict field to its canonical name (s_ prefix).
@@ -303,8 +323,8 @@ class SimosLoader:
         metadata_dict = raw.get("metadata")
         summary_dict = raw.get("summary")
 
-        # Extract snapshots
-        raw_snapshots = raw.get("snapshots")
+        # Extract snapshots (SimOS export uses "state_snapshots" key)
+        raw_snapshots = raw.get("state_snapshots") or raw.get("snapshots")
         snapshots_df: pl.DataFrame | None = None
         col_info_snapshots = None
         if raw_snapshots and isinstance(raw_snapshots, list):

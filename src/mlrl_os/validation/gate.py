@@ -17,6 +17,7 @@ from mlrl_os.config.schemas import (
     ResolvedTimeSeriesFeatures,
 )
 from mlrl_os.core.types import CVStrategy, ObservationPoint, ProblemType
+from mlrl_os.features.target_derivation import is_derived_target
 
 # ---------------------------------------------------------------------------
 # Known registries
@@ -167,8 +168,10 @@ class ValidationGate:
         df: pl.DataFrame,
         errors: list[ValidationError],
     ) -> None:
-        """V-03: Target column must exist in the data."""
+        """V-03: Target column must exist in the data (skip for derived targets)."""
         target = config.features.target
+        if is_derived_target(target):
+            return  # Derived targets are computed during feature engineering
         if target not in df.columns:
             errors.append(ValidationError(
                 code="V-03",
@@ -300,6 +303,8 @@ class ValidationGate:
     ) -> None:
         """V-11: Target null rate must be <= 10%."""
         target = config.features.target
+        if is_derived_target(target):
+            return  # Derived targets are computed during feature engineering
         if target not in df.columns:
             return  # Already caught by V-03
         null_rate = df[target].null_count() / len(df) if len(df) > 0 else 0.0
@@ -493,6 +498,8 @@ class ValidationGate:
     ) -> None:
         """VE-01: Target must be categorical or have <= 20 unique values."""
         target = config.features.target
+        if is_derived_target(target):
+            return  # Derived targets are always categorical
         if target not in df.columns:
             return  # Already caught by V-03
         col = df[target]
@@ -519,6 +526,8 @@ class ValidationGate:
     ) -> None:
         """VE-02: All target classes must have >= 10 samples."""
         target = config.features.target
+        if is_derived_target(target):
+            return  # Derived targets are validated post-derivation
         if target not in df.columns:
             return
         value_counts = df[target].drop_nulls().value_counts()
@@ -544,6 +553,8 @@ class ValidationGate:
     ) -> None:
         """VE-03: Number of classes must be <= 20."""
         target = config.features.target
+        if is_derived_target(target):
+            return  # Derived targets have at most 3 classes
         if target not in df.columns:
             return
         n_classes = df[target].drop_nulls().n_unique()
