@@ -30,8 +30,11 @@ class TestProblemType:
     def test_entity_classification_value(self) -> None:
         assert ProblemType.ENTITY_CLASSIFICATION.value == "entity_classification"
 
+    def test_reinforcement_learning_value(self) -> None:
+        assert ProblemType.REINFORCEMENT_LEARNING.value == "reinforcement_learning"
+
     def test_members_count(self) -> None:
-        assert len(ProblemType) == 2
+        assert len(ProblemType) == 3
 
 
 # ---------------------------------------------------------------------------

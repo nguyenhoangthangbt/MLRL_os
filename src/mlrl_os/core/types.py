@@ -17,6 +17,7 @@ class ProblemType(str, Enum):
 
     TIME_SERIES = "time_series"
     ENTITY_CLASSIFICATION = "entity_classification"
+    REINFORCEMENT_LEARNING = "reinforcement_learning"
 
 
 class TaskType(str, Enum):
