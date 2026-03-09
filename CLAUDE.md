@@ -429,4 +429,15 @@ Each instrument operates independently. SimOS runs without ML/RL OS. ML/RL OS ru
 | Phase 4: CLI & Polish | **DONE** | CLI (serve, run, validate, datasets list/import), TypeScript type-checks clean, Vite builds clean |
 | Smoke Test | **DONE** | healthcare_er template → SimOS export → SimosLoader → DatasetRegistry → ExperimentRunner → LightGBM entity classification (560 samples, 88 features, 0.6s) |
 
-Current phase: **v0.1 complete.** Next: v0.2 (RL training, time-series smoke test, multi-algorithm comparison).
+Current phase: **v0.1 complete (2026-03-10).** Next: v0.2 (RL training against SimOS environments, AgentsOS integration).
+
+### v0.1 Smoke Test Results (2026-03-10)
+
+| Template | Target | Observation | Samples | Features | Best Algo | F1 | AUC |
+|---|---|---|---|---|---|---|---|
+| healthcare_er | delay_severity | all_steps | 560 | 40 | lightgbm | 1.000 | 1.000 |
+| logistics_otd | delay_severity | all_steps | 3688 | 84 | lightgbm | 0.999 | 1.000 |
+| call_center | wait_ratio_class | all_steps | 2119 | 91 | lightgbm | 1.000 | 1.000 |
+| logistics_otd | delay_severity | entry_only | 996 | 84 | random_forest | 0.911 | 0.990 |
+
+`entry_only` (predict from first step only) confirms genuine predictive power without leakage. `all_steps` near-perfect scores are expected — later steps carry increasingly informative state.
