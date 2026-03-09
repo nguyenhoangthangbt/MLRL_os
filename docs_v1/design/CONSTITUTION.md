@@ -29,9 +29,9 @@ ML/RL OS inverts the typical ML workflow:
 | Track experiments in spreadsheets | Built-in experiment registry with provenance |
 | Struggle with reproducibility | Seed + config = identical results, guaranteed |
 
-### What Has Shipped (v0.1 — COMPLETE as of 2026-03-10)
+### What Has Shipped
 
-All v0.1 capabilities are implemented, tested (416 tests), and smoke-tested across 3 SimOS templates:
+#### v0.1 (Complete — 2026-03-10, 416 tests)
 
 - **Two prediction problem types:** time-series forecasting and entity classification
 - **Derived targets:** `sla_breach`, `delay_severity`, `wait_ratio_class` — computed from raw trajectory data with automatic leakage prevention
@@ -50,12 +50,25 @@ All v0.1 capabilities are implemented, tested (416 tests), and smoke-tested acro
 - **Web UI:** React 19 + Vite + Tailwind, 7-step Builder, Dashboard, Results
 - **CLI:** `serve`, `run`, `validate`, `datasets list/import`
 
-### What Ships in v0.2
+#### v0.2 (Complete — 2026-03-10, 710 total tests)
 
-- Reinforcement learning: policy training against SimOS environments
-- Sequence models: LSTM/Transformer for time-series (if lag features prove insufficient)
+- **Reinforcement learning engine:** custom DQN and PPO algorithms (pure Python/PyTorch, no Gymnasium dependency)
+- **SimOS WebSocket environment:** async client for live RL training against SimOS simulations
+- **Curriculum learning:** progressive training via Layer 5 stress scenarios
+- **LSTM algorithm:** PyTorch sequence model registered in algorithm registry
+- **Pluggable storage backend:** StorageBackend protocol with file (default) and PostgreSQL implementations
+- **Hyperparameter tuning:** Optuna integration with configurable n_trials
+- **Streaming inference:** WebSocket endpoints for real-time ML/RL predictions
+- **HTML report export:** standalone HTML with inline CSS and SVG charts
+- **RL API routes:** 5 REST endpoints for RL experiments and policies
+- **Smoke tested:** 8/8 experiments across healthcare_er and logistics_otd
+
+### What Ships in v0.3
+
+- RL integration testing with live SimOS WebSocket
+- PostgreSQL integration testing
 - AgentsOS integration: experiment orchestration and knowledge accumulation
-- Streaming inference: real-time predictions during live simulation
+- Enhancement proposals from v0.2 smoke test report (AUC edge cases, auto-detection, class imbalance warnings)
 
 ---
 
@@ -77,21 +90,32 @@ Every term used in this project. Alphabetical.
 | **Experiment Builder** | See Builder. |
 | **Feature** | A single input column fed to a model. Features are either raw (from data) or engineered (derived from raw features via transformations). |
 | **Feature Engineering** | Transformations applied to raw data to create model-ready features. Includes: lag values, rolling statistics, trend extraction, ratio computation, progress indicators. |
+| **Curriculum Learning** | Progressive RL training using SimOS Layer 5 stress scenarios. Starts with base config and introduces increasing complexity. |
+| **DQN** | Deep Q-Network. RL algorithm for discrete action spaces with experience replay and target network. |
 | **Feature Store** | Registry of reusable feature definitions. A feature definition specifies the transformation logic and can be applied to any compatible dataset. |
 | **Horizon** | For time-series forecasting: how far ahead to predict. Example: horizon=1h means predict system state 1 hour into the future. |
 | **Lag Feature** | A feature created by shifting a time-series column backwards. `queue_lag_1h` = queue depth 1 hour ago. |
+| **LSTM** | Long Short-Term Memory. PyTorch sequence model for time-series and classification. Lazy-loaded via algorithm registry. |
 | **Layer 2 (Trajectories)** | SimOS export layer containing per-entity, per-step MDP records with state vectors. Primary data source for entity classification. |
 | **Layer 3 (Snapshots)** | SimOS export layer containing periodic system state observations. Primary data source for time-series forecasting. |
 | **Lookback** | For time-series forecasting: how much historical data to use as features. Example: lookback=8h means use last 8 hours of snapshots. |
 | **Model** | A trained artifact: algorithm + learned parameters + training provenance. Immutable after registration. |
 | **Model Registry** | Versioned storage for trained models. Each entry includes: model artifact, training config, dataset reference, evaluation metrics, timestamp. |
 | **Observation Point** | For entity classification: at which step(s) of an entity's journey to make predictions. Options: `entry_only`, `midpoint`, `all_steps`. |
-| **Problem Type** | The class of prediction task. v0.1 supports two: `time_series` and `entity_classification`. Auto-detected from dataset layer or explicitly specified. |
+| **Observation Spec** | For RL: defines the observation space shape and bounds. 24-dim vector: entity state (10) + node state (9) + system state (5). |
+| **PPO** | Proximal Policy Optimization. RL algorithm for continuous/discrete action spaces with clipped surrogate objective and GAE. |
+| **Policy** | An RL-trained artifact: algorithm + learned parameters + training provenance. Maps observations to actions. Immutable after registration. |
+| **Problem Type** | The class of prediction task. v0.2 supports three: `time_series`, `entity_classification`, and `reinforcement_learning`. Auto-detected from dataset layer or explicitly specified. |
 | **Provenance** | Complete lineage of a trained model: dataset version, experiment config, seed, algorithm version, training timestamp. Enables full reproducibility. |
+| **Replay Buffer** | For RL: stores experience tuples (state, action, reward, next_state, done) for off-policy training. Supports uniform and prioritized sampling. |
 | **Resolved Config** | The fully-specified experiment configuration after merging user overrides onto defaults. The experiment runner only operates on resolved configs. |
+| **Reward Function** | For RL: maps (state, action, next_state, info) to a scalar reward. Built-in: throughput, SLA compliance, cost minimization, composite. |
+| **RL Algorithm Registry** | Registry of RL algorithms (DQN, PPO). Separate from ML algorithm registry. Lazy-loaded. |
 | **Rolling Feature** | A feature computed over a sliding window. `queue_rolling_mean_4h` = mean queue depth over last 4 hours. |
 | **Seed** | Integer controlling all random processes. Same seed + same config + same data = identical results. Non-negotiable. |
+| **SimOS Environment** | For RL: wrapper that connects to SimOS WebSocket API, translates simulation state to observations, and executes actions. |
 | **SimOS Export** | The 5-layer JSON/CSV output from Simulation OS containing event streams, entity trajectories, state snapshots, domain enrichment, and stress scenarios. |
+| **Storage Backend** | Pluggable persistence layer. Protocol with 20 methods. Implementations: FileStorageBackend (default), PostgresStorageBackend (optional). |
 | **Target** | The column being predicted. For time-series: a future numeric value. For entity classification: a categorical outcome. |
 | **Temporal CV** | Cross-validation strategy for time-series that respects chronological ordering. Training data always precedes test data. No future leakage. |
 | **Time-Series Forecasting** | Problem type A. Given historical system snapshots, predict future system state (lead time, throughput, queue depth, etc.). |
@@ -553,7 +577,7 @@ Users can export this YAML, modify it, and resubmit via API — enabling both UI
 ## 11. Position in the Ecosystem
 
 ```
-AgentsOS (future)
+AgentsOS (implemented)
    ↓ orchestrates experiments
 ML/RL OS
    ↑ consumes data from
@@ -574,7 +598,7 @@ SimOS
   → model registered
   → experiment tracked
 
-AgentsOS (v0.3+)
+AgentsOS (implemented)
   → proposes experiments
   → submits to ML/RL OS API
   → analyzes results

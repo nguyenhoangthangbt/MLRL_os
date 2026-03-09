@@ -1,6 +1,6 @@
 # ML/RL OS — Development Guide for Claude Code
 
-> **Context:** ML/RL OS is a predictive intelligence instrument for operational systems. It consumes structured operational data (primarily from Simulation OS exports) and produces trained models, forecasts, entity classifications, and evaluation reports through a validated experiment pipeline. The project is in early development (v0.1).
+> **Context:** ML/RL OS is a predictive intelligence instrument for operational systems. It consumes structured operational data (primarily from Simulation OS exports) and produces trained models, forecasts, entity classifications, RL policies, and evaluation reports through a validated experiment pipeline. v0.2 complete (2026-03-10).
 
 ## Architecture Overview
 
@@ -13,9 +13,13 @@
 ├─────────────────────────────────────────────────────────────┤
 │  Backend API (src/mlrl_os/)                      Port 8001  │
 │  Python 3.13 + FastAPI + Pydantic v2                        │
-│  16 REST endpoints                                          │
+│  18 REST + 5 RL + 2 WebSocket endpoints                     │
 ├─────────────────────────────────────────────────────────────┤
-│  Storage: File System (v0.1)                                │
+│  RL Engine (src/mlrl_os/rl/)                     v0.2       │
+│  Custom DQN/PPO, SimOS WebSocket env, curriculum learning   │
+├─────────────────────────────────────────────────────────────┤
+│  Storage: File System (default) | PostgreSQL (optional)     │
+│  Pluggable via StorageBackend protocol                      │
 │  ./data/ (datasets) │ ./models/ │ ./experiments/            │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -25,9 +29,13 @@
 | Layer | Technology |
 |---|---|
 | **Backend** | Python 3.13+, FastAPI, Pydantic v2 |
-| **ML Core** | scikit-learn, LightGBM, XGBoost |
+| **ML Core** | scikit-learn, LightGBM, XGBoost, LSTM (PyTorch) |
+| **RL Engine** | Custom DQN/PPO (PyTorch), SimOS WebSocket environment |
 | **Data** | Polars (primary), pandas (compatibility) |
 | **Dataset Format** | Parquet (storage), JSON (SimOS interchange), CSV (external) |
+| **Storage** | File system (default), PostgreSQL (optional via asyncpg) |
+| **Tuning** | Optuna (hyperparameter optimization) |
+| **Streaming** | WebSocket inference (real-time predictions) |
 | **Web UI** | React 19, TypeScript, Vite, Tailwind CSS |
 | **Charts** | Plotly.js (lazy loaded) |
 | **State** | TanStack React Query (server), Zustand (client) |
@@ -46,29 +54,38 @@ All documentation lives in `docs_v1/`. Read these before making significant chan
 | [CONTRACTS](docs_v1/design/CONTRACTS.md) | Data decoupling architecture, exact schemas (SimOS export, internal canonical, API request/response, YAML config), concrete examples at every pipeline stage, algorithm specs, file storage layout |
 | [SKELETON](docs_v1/design/SKELETON.md) | File-by-file implementation guide with build order, dependencies, function signatures, test specs |
 | [IMPLEMENTATION_PLAN](docs_v1/design/IMPLEMENTATION_PLAN.md) | Phased build order, testing strategy, quality gates |
+| [v0.2 Design](docs/plans/2026-03-10-v02-design.md) | RL engine, PostgreSQL, streaming, tuning, LSTM, HTML reports |
+| [v0.2 Implementation Plan](docs/plans/2026-03-10-v02-implementation-plan.md) | 24-task TDD build plan for v0.2 |
+| [v0.2 Smoke Test Report](docs/reports/2026-03-10-v02-smoke-test-report.md) | 8/8 experiments across 2 SimOS templates, findings, enhancements |
 
 ## What This Project Does
 
-ML/RL OS supports exactly **two prediction problem types**:
+ML/RL OS supports **three problem types**:
 
 ### 1. Time-Series Forecasting
 - **Input:** SimOS Layer 3 state snapshots (periodic system observations)
 - **Question:** "System ran 8 hours. What happens in the next hour?"
 - **Features:** Lag values, rolling statistics, trend slopes, ratio features
 - **Target:** Future numeric value (lead_time, throughput, queue_depth, etc.)
-- **Algorithms:** LightGBM, XGBoost with lag features (tabular approach)
+- **Algorithms:** LightGBM, XGBoost, LSTM with lag features
 
 ### 2. Entity Classification
 - **Input:** SimOS Layer 2 entity trajectories (per-entity, per-step MDP records)
 - **Question:** "This entity is at step 3. Will it complete? Will it breach SLA?"
 - **Features:** Entity state (10), node state (9), system state (5), derived features
 - **Target:** Categorical outcome (episode_status, sla_breach, delay_severity)
-- **Algorithms:** LightGBM classifier with class imbalance handling
+- **Algorithms:** LightGBM, Random Forest, ExtraTrees, LSTM with class imbalance handling
+
+### 3. Reinforcement Learning (v0.2)
+- **Input:** Live SimOS environment via WebSocket API
+- **Question:** "What routing/scheduling action maximizes throughput / minimizes SLA breaches?"
+- **State:** 24-dim observation (entity:10 + node:9 + system:5)
+- **Algorithms:** Custom DQN (discrete actions), PPO (continuous/discrete)
+- **Training:** Online RL against SimOS WebSocket, with curriculum learning via stress scenarios
 
 ### What This Project Does NOT Do
 - **No config → outcome prediction.** SimOS simulation is cheap — just run it.
-- **No deep learning** in v0.1. Lag features + gradient boosting is competitive.
-- **No RL training** in v0.1. Deferred to v0.2.
+- **No deep learning for tabular.** LSTM available but gradient boosting is the default.
 - **No SimOS code imports.** SimOS is a data source, not a dependency.
 
 ## Source Layout
@@ -99,7 +116,8 @@ src/mlrl_os/
 ├── config/                      # Configuration management
 │   ├── defaults.py              # BaseSettings (env vars), default configs
 │   ├── resolver.py              # Merge user config + defaults → resolved
-│   └── schemas.py               # Pydantic models for all config types
+│   ├── schemas.py               # Pydantic models for all config types
+│   └── rl_schemas.py            # RL-specific config (reward, curriculum, training)
 │
 ├── validation/                  # Validation gate
 │   └── gate.py                  # All validation rules (V-01..VE-04)
@@ -114,12 +132,14 @@ src/mlrl_os/
 │       ├── xgboost.py           # XGBoost wrapper
 │       ├── random_forest.py     # sklearn RandomForest wrapper
 │       ├── extra_trees.py       # sklearn ExtraTrees wrapper
-│       └── linear.py            # Ridge / LogisticRegression
+│       ├── linear.py            # Ridge / LogisticRegression
+│       └── lstm.py              # PyTorch LSTM (lazy-loaded)
 │
 ├── evaluation/                  # Evaluation & reporting
 │   ├── metrics.py               # Metric registry & computation
 │   ├── reports.py               # Report generation (JSON + HTML)
-│   └── comparison.py            # Multi-experiment comparison
+│   ├── comparison.py            # Multi-experiment comparison
+│   └── html_export.py           # Standalone HTML reports with inline SVG
 │
 ├── experiment/                  # Experiment orchestration
 │   ├── runner.py                # Full pipeline: config → result
@@ -132,7 +152,31 @@ src/mlrl_os/
 │   ├── experiment_routes.py     # Experiment endpoints
 │   ├── model_routes.py          # Model endpoints
 │   ├── config_routes.py         # Config resolution endpoints
+│   ├── rl_routes.py             # RL experiment & policy endpoints
 │   └── schemas.py               # Request/response Pydantic models
+│
+├── rl/                          # Reinforcement learning engine (v0.2)
+│   ├── spaces.py                # ObservationSpec, ActionSpec (24-dim state)
+│   ├── rewards.py               # Reward functions (throughput, SLA, cost, composite)
+│   ├── replay_buffer.py         # Experience replay (uniform + prioritized)
+│   ├── networks.py              # MLP, ActorCritic (PyTorch, lazy-loaded)
+│   ├── curriculum.py            # CurriculumManager (stress scenario progression)
+│   ├── environment.py           # SimOSEnvironment (reset/step/close)
+│   ├── simos_client.py          # SimOS WebSocket client (async)
+│   ├── runner.py                # RLExperimentRunner (training loop)
+│   └── algorithms/
+│       ├── protocol.py          # RLAlgorithm protocol
+│       ├── registry.py          # RLAlgorithmRegistry
+│       ├── dqn.py               # Deep Q-Network (epsilon-greedy, target net)
+│       └── ppo.py               # Proximal Policy Optimization (GAE, clipped)
+│
+├── storage/                     # Pluggable storage backends (v0.2)
+│   ├── protocol.py              # StorageBackend protocol (20 methods)
+│   ├── file_backend.py          # FileStorageBackend (wraps v0.1 registries)
+│   └── postgres_backend.py      # PostgresStorageBackend (asyncpg, JSONB)
+│
+├── streaming/                   # Real-time inference (v0.2)
+│   └── ws_inference.py          # WebSocket prediction endpoints
 │
 └── cli.py                       # CLI entry point
 ```
@@ -164,14 +208,19 @@ web/src/
 
 ```
 tests/
-├── unit/                        # Per-module unit tests
-│   ├── data/
-│   ├── features/
-│   ├── config/
-│   ├── validation/
-│   ├── models/
-│   ├── evaluation/
-│   └── experiment/
+├── unit/                        # Per-module unit tests (710 tests)
+│   ├── api/                     # API route tests
+│   ├── config/                  # Config schemas, resolver, defaults
+│   ├── core/                    # Core types, dataset, experiment
+│   ├── data/                    # Loaders, registry, discovery, validation
+│   ├── evaluation/              # Metrics, reports, HTML export
+│   ├── experiment/              # Seed utilities
+│   ├── features/                # Entity, time-series, detection, targets
+│   ├── models/                  # Engine, tuning, algorithms (incl. LSTM)
+│   ├── rl/                      # Spaces, rewards, buffer, DQN, PPO, env, runner
+│   ├── storage/                 # Protocol, file backend, postgres backend
+│   ├── streaming/               # WebSocket inference
+│   └── validation/              # Validation gate
 ├── integration/                 # End-to-end pipeline tests
 └── fixtures/                    # Sample SimOS exports, synthetic data
 ```
@@ -198,6 +247,13 @@ tests/
 | GET | `/api/v1/models/{id}/feature-importance` | Get feature importance |
 | POST | `/api/v1/config/resolve` | Preview resolved config |
 | GET | `/api/v1/health` | Health check |
+| POST | `/api/v1/rl/experiments` | Submit RL training experiment |
+| GET | `/api/v1/rl/experiments` | List RL experiments |
+| GET | `/api/v1/rl/experiments/{id}` | Get RL experiment status/results |
+| GET | `/api/v1/rl/policies` | List trained RL policies |
+| GET | `/api/v1/rl/policies/{id}` | Get RL policy metadata |
+| WS | `/ws/v1/predict/{model_id}` | Streaming ML inference |
+| WS | `/ws/v1/policy/{policy_id}` | Streaming RL policy inference |
 
 ## Configuration System
 
@@ -255,7 +311,7 @@ def seed_hash(name: str, global_seed: int) -> int:
 ```
 Every component gets its own deterministic RNG. Same seed + config + data = identical results.
 
-### Algorithm Registry
+### Algorithm Registry (ML)
 All ML algorithms implement the `Algorithm` protocol and are registered by name. Lazy-loaded to avoid import errors when optional deps are missing.
 
 ```python
@@ -265,6 +321,35 @@ class Algorithm(Protocol):
     def train(self, X, y, task, seed, **kwargs) -> TrainedModel: ...
     def predict(self, model, X) -> np.ndarray: ...
     def feature_importance(self, model) -> dict[str, float] | None: ...
+```
+
+**Registered algorithms:** lightgbm, xgboost, random_forest, extra_trees, linear, lstm
+
+### RL Algorithm Registry (v0.2)
+RL algorithms implement the `RLAlgorithm` protocol with separate registry.
+
+```python
+class RLAlgorithm(Protocol):
+    @property
+    def name(self) -> str: ...
+    def select_action(self, state, explore) -> int: ...
+    def train_step(self, batch) -> dict[str, float]: ...
+    def save(self, path) -> None: ...
+    def load(self, path) -> None: ...
+```
+
+**Registered RL algorithms:** dqn, ppo
+
+### Storage Backend Protocol (v0.2)
+Pluggable storage via `StorageBackend` protocol. File backend wraps v0.1 registries. PostgreSQL backend stores metadata in JSONB, artifacts on disk.
+
+```python
+class StorageBackend(Protocol):
+    async def register_dataset(self, meta, df) -> str: ...
+    async def get_dataset(self, dataset_id) -> DatasetMeta: ...
+    async def save_experiment(self, result) -> str: ...
+    async def save_model(self, model, meta) -> str: ...
+    # ... 20 methods total
 ```
 
 ### Validation Gate
@@ -282,11 +367,11 @@ ML/RL OS consumes SimOS's 5-layer ML export (export_version 3.0):
 
 | Layer | Used By | Content |
 |---|---|---|
-| Layer 1 (Event Stream) | Not used in v0.1 | Raw chronological events |
-| Layer 2 (Trajectories) | Entity classification | Per-entity, per-step MDP records with state vectors |
+| Layer 1 (Event Stream) | Not used in v0.2 | Raw chronological events |
+| Layer 2 (Trajectories) | Entity classification, RL state | Per-entity, per-step MDP records with state vectors |
 | Layer 3 (Snapshots) | Time-series forecasting | Periodic system state observations |
 | Layer 4 (Domain Enrichment) | Entity classification | Domain-specific features (healthcare/supply chain/service) |
-| Layer 5 (Stress Scenarios) | Not used in v0.1 | Config change descriptors for curriculum RL |
+| Layer 5 (Stress Scenarios) | RL curriculum learning | Config change descriptors for progressive training |
 
 **SimOS export is loaded via `SimosLoader` — no SimOS code is imported.**
 
@@ -342,6 +427,8 @@ All prefixed with `MLRL_`.
 | `MLRL_MAX_TRAINING_ROWS` | `1000000` | Max training dataset rows |
 | `MLRL_CV_FOLDS_DEFAULT` | `5` | Default CV folds |
 | `MLRL_SEED_DEFAULT` | `42` | Default experiment seed |
+| `MLRL_STORAGE_BACKEND` | `file` | Storage backend (`file` or `postgres`) |
+| `MLRL_DATABASE_URL` | `` | PostgreSQL connection URL (required if backend=postgres) |
 
 ## Running the Platform
 
@@ -374,7 +461,7 @@ mypy                                       # Type check
 4. **Temporal CV for time-series.** Random k-fold is rejected at validation for time-series problems. No future leakage, ever.
 5. **Seeded everything.** Every random process uses `seed_hash(component_name, global_seed)`. Same inputs = identical outputs.
 6. **Immutable artifacts.** Registered datasets and models cannot be modified. New versions create new entries.
-7. **No heavy imports at module level.** LightGBM, XGBoost are lazy-loaded through the algorithm registry.
+7. **No heavy imports at module level.** LightGBM, XGBoost, PyTorch, asyncpg are lazy-loaded through their respective registries.
 8. **SimOS is data, not code.** Never import from `simulation_os`. SimOS exports are data files with a known schema.
 9. **Auto-discover, don't hard-code.** Features and targets are discovered from data schema, not hard-coded in platform code.
 10. **All errors at once.** Validation returns ALL errors, not just the first. Users fix everything in one pass.
@@ -389,7 +476,7 @@ mypy                                       # Type check
 - **Don't skip the validation gate.** Even in tests, run validation to ensure config is valid. No shortcut.
 - **Don't import SimOS.** `from simulation_os import ...` is forbidden. SimOS is a data source.
 - **Don't use SimOS field names outside `SimosSchemaAdapter`.** All pipeline code uses canonical column names only. See CONTRACTS.md §1.
-- **Don't import LightGBM/XGBoost at module level.** Use the algorithm registry's lazy loading.
+- **Don't import LightGBM/XGBoost/PyTorch at module level.** Use the algorithm registry's lazy loading.
 - **Don't share RNG between components.** Each gets its own seeded `random.Random` via `seed_hash`.
 - **Don't add optional fields to ResolvedExperimentConfig.** After resolution, everything is concrete.
 - **Don't return just the first validation error.** Collect and return ALL errors.
@@ -406,7 +493,7 @@ mypy                                       # Type check
 ML/RL OS is one of three instruments in the Operational Intelligence Platform:
 
 ```
-AgentsOS (future)
+AgentsOS (implemented)
    ↓ orchestrates experiments
 ML/RL OS (this project)
    ↑ consumes data from
@@ -415,11 +502,13 @@ SimOS (production-ready)
 
 - **SimOS** runs on ports 8000 (API), 5173 (Web), 5174 (Live-Viz)
 - **ML/RL OS** runs on ports 8001 (API), 5175 (Web)
-- **AgentsOS** — architecture drafted, not yet implemented
+- **AgentsOS** — implemented (separate project)
 
 Each instrument operates independently. SimOS runs without ML/RL OS. ML/RL OS runs without SimOS (using external CSV/Parquet data).
 
 ## Implementation Status
+
+### v0.1 (Complete — 2026-03-10)
 
 | Phase | Status | Content |
 |---|---|---|
@@ -427,17 +516,45 @@ Each instrument operates independently. SimOS runs without ML/RL OS. ML/RL OS ru
 | Phase 2: API Layer | **DONE** | FastAPI app factory, 18 REST endpoints, 28 API tests |
 | Phase 3: Web UI | **DONE** | React 19 + Vite + Tailwind, 7-step Builder, Dashboard, Dataset/Experiment/Model pages (22 files) |
 | Phase 4: CLI & Polish | **DONE** | CLI (serve, run, validate, datasets list/import), TypeScript type-checks clean, Vite builds clean |
-| Smoke Test | **DONE** | healthcare_er template → SimOS export → SimosLoader → DatasetRegistry → ExperimentRunner → LightGBM entity classification (560 samples, 88 features, 0.6s) |
 
-Current phase: **v0.1 complete (2026-03-10).** Next: v0.2 (RL training against SimOS environments, AgentsOS integration).
+### v0.2 (Complete — 2026-03-10)
 
-### v0.1 Smoke Test Results (2026-03-10)
+| Phase | Status | Content |
+|---|---|---|
+| Storage Backend | **DONE** | StorageBackend protocol, FileStorageBackend, PostgresStorageBackend — 61 tests |
+| Hyperparameter Tuning | **DONE** | n_trials wired through full stack (config → resolver → engine → runner → API) |
+| RL Foundations | **DONE** | Spaces, rewards, replay buffers, networks, curriculum — 67 tests |
+| RL Algorithms | **DONE** | Custom DQN, PPO, protocol, registry — 59 tests |
+| RL Environment/Runner | **DONE** | SimOS WebSocket client, environment, RL config, runner, API routes — 69 tests |
+| LSTM Algorithm | **DONE** | PyTorch LSTM via algorithm registry — 14 tests |
+| Streaming Inference | **DONE** | WebSocket prediction endpoints — 4 tests |
+| HTML Reports | **DONE** | Standalone HTML export with inline SVG charts — 17 tests |
+| v0.2 Smoke Test | **DONE** | 8/8 experiments across healthcare_er and logistics_otd — [report](docs/reports/2026-03-10-v02-smoke-test-report.md) |
+
+**Current: v0.2 complete (2026-03-10). Total: 710 tests passing.**
+
+Next: v0.3 (RL integration testing with live SimOS WebSocket, AgentsOS integration, PostgreSQL integration testing).
+
+### v0.2 Smoke Test Results (2026-03-10)
 
 | Template | Target | Observation | Samples | Features | Best Algo | F1 | AUC |
 |---|---|---|---|---|---|---|---|
-| healthcare_er | delay_severity | all_steps | 560 | 40 | lightgbm | 1.000 | 1.000 |
+| healthcare_er | delay_severity | all_steps | 560 | 91 | lightgbm | 1.000 | 1.000 |
+| healthcare_er | delay_severity | entry_only | 187 | 91 | random_forest | 0.924 | 0.993 |
+| healthcare_er | sla_breach | all_steps | 560 | 91 | random_forest | 0.988 | 1.000 |
+| healthcare_er | sla_breach | entry_only | 187 | 91 | lightgbm | 1.000 | 1.000 |
 | logistics_otd | delay_severity | all_steps | 3688 | 84 | lightgbm | 0.999 | 1.000 |
-| call_center | wait_ratio_class | all_steps | 2119 | 91 | lightgbm | 1.000 | 1.000 |
 | logistics_otd | delay_severity | entry_only | 996 | 84 | random_forest | 0.911 | 0.990 |
+| logistics_otd | sla_breach | all_steps | 3688 | 84 | random_forest | 1.000 | 0.000* |
+| logistics_otd | sla_breach | entry_only | 996 | 84 | random_forest | 1.000 | 0.000* |
+
+*AUC=0.0 for logistics_otd sla_breach due to near-single-class distribution — see [smoke test report](docs/reports/2026-03-10-v02-smoke-test-report.md) Finding F-03.
 
 `entry_only` (predict from first step only) confirms genuine predictive power without leakage. `all_steps` near-perfect scores are expected — later steps carry increasingly informative state.
+
+### Known Issues & Enhancement Proposals
+
+See [v0.2 Smoke Test Report §7](docs/reports/2026-03-10-v02-smoke-test-report.md) for 10 enhancement proposals. Key items:
+- **E-01 (High):** AUC returns 0.0 instead of null for undefined cases
+- **E-02 (High):** Auto-detection ambiguity when dataset has both trajectories and snapshots
+- **E-03 (Medium):** No validation warning for extreme class imbalance

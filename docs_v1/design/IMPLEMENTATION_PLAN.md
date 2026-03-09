@@ -212,9 +212,9 @@ All fixtures have known expected outputs for verification.
 
 ---
 
-## Completion Status (2026-03-10)
+## Completion Status
 
-All four phases are **DONE**. 416 tests passing.
+### v0.1 (Complete — 2026-03-10, 416 tests)
 
 | Phase | Status | Tests | Notes |
 |---|---|---|---|
@@ -223,22 +223,42 @@ All four phases are **DONE**. 416 tests passing.
 | Phase 3: Web UI | DONE | — | 22 React+TS files, 7-step Builder |
 | Phase 4: CLI & Polish | DONE | — | CLI, TypeScript clean, Vite builds |
 | Derived Targets | DONE | 20 | `sla_breach`, `delay_severity`, `wait_ratio_class` |
-| Smoke Tests | DONE | — | 3 templates, 4 experiments, realistic metrics |
+| v0.1 Smoke Tests | DONE | — | 3 templates, 4 experiments, realistic metrics |
 
-### Smoke Test Results
+### v0.2 (Complete — 2026-03-10, 710 total tests)
+
+See [v0.2 Design](../plans/2026-03-10-v02-design.md) and [v0.2 Implementation Plan](../plans/2026-03-10-v02-implementation-plan.md) for full details.
+
+| Phase | Status | Tests | Notes |
+|---|---|---|---|
+| Storage Backend | DONE | 61 | StorageBackend protocol, file + PostgreSQL backends |
+| Hyperparameter Tuning | DONE | — | n_trials wired through config → resolver → engine → API |
+| RL Foundations | DONE | 67 | Spaces, rewards, replay buffers, networks, curriculum |
+| RL Algorithms | DONE | 59 | Custom DQN, PPO, protocol, registry |
+| RL Environment/Runner | DONE | 69 | SimOS WebSocket client, environment, runner, API routes |
+| LSTM Algorithm | DONE | 14 | PyTorch LSTM via algorithm registry |
+| Streaming Inference | DONE | 4 | WebSocket prediction endpoints |
+| HTML Reports | DONE | 17 | Standalone HTML export with inline SVG charts |
+| v0.2 Smoke Test | DONE | — | 8/8 experiments, 2 templates — [report](../reports/2026-03-10-v02-smoke-test-report.md) |
+
+### v0.2 Smoke Test Results
 
 | Template | Target | Observation | Samples | Features | Best Algo | F1 | AUC |
 |---|---|---|---|---|---|---|---|
-| healthcare_er | delay_severity | all_steps | 560 | 40 | lightgbm | 1.000 | 1.000 |
+| healthcare_er | delay_severity | all_steps | 560 | 91 | lightgbm | 1.000 | 1.000 |
+| healthcare_er | delay_severity | entry_only | 187 | 91 | random_forest | 0.924 | 0.993 |
+| healthcare_er | sla_breach | all_steps | 560 | 91 | random_forest | 0.988 | 1.000 |
+| healthcare_er | sla_breach | entry_only | 187 | 91 | lightgbm | 1.000 | 1.000 |
 | logistics_otd | delay_severity | all_steps | 3688 | 84 | lightgbm | 0.999 | 1.000 |
-| call_center | wait_ratio_class | all_steps | 2119 | 91 | lightgbm | 1.000 | 1.000 |
 | logistics_otd | delay_severity | entry_only | 996 | 84 | random_forest | 0.911 | 0.990 |
+| logistics_otd | sla_breach | all_steps | 3688 | 84 | random_forest | 1.000 | 0.000* |
+| logistics_otd | sla_breach | entry_only | 996 | 84 | random_forest | 1.000 | 0.000* |
 
-`entry_only` observation (predicting from first step only) confirms genuine predictive power without trivial leakage.
+*AUC=0.0 for near-single-class target — see report Finding F-03.
 
-### Next: v0.2
+### Next: v0.3
 
-- RL training against SimOS environments
-- Sequence models (LSTM/Transformer) if lag features prove insufficient
+- RL integration testing with live SimOS WebSocket
+- PostgreSQL integration testing
 - AgentsOS integration for experiment orchestration
-- Streaming inference during live simulation
+- Address enhancement proposals from v0.2 smoke test report
