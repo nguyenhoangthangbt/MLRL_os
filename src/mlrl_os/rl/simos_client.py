@@ -3,9 +3,6 @@
 Communicates with SimOS via:
 - REST API (httpx) for simulation creation
 - WebSocket (websockets) for real-time stepping and state retrieval
-
-Both ``httpx`` and ``websockets`` are lazy-imported so this module can
-be imported without those packages installed.
 """
 
 from __future__ import annotations
@@ -14,11 +11,10 @@ import json
 import logging
 from typing import Any
 
-logger = logging.getLogger(__name__)
+import httpx
+import websockets
 
-# Lazy imports -- httpx and websockets are imported inside methods
-import httpx  # noqa: E402
-import websockets  # noqa: E402
+logger = logging.getLogger(__name__)
 
 
 class SimOSWebSocketClient:
