@@ -90,8 +90,11 @@ class TimeSeriesFeatureEngine:
             df, target, feature_columns, exclude_columns
         )
 
-        # Build feature DataFrame
-        feature_df = df.select(["ts"] + source_cols).clone()
+        # Build feature DataFrame — include target so we can create the shifted target column
+        select_cols = ["ts"] + source_cols
+        if target not in select_cols:
+            select_cols.append(target)
+        feature_df = df.select(select_cols).clone()
 
         # Generate lag features
         lag_steps = [

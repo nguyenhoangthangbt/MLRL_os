@@ -286,6 +286,7 @@ class ConfigResolver:
             cross_validation=cv_config,
             handle_imbalance=combined.get("handle_imbalance", False),
             hyperparameter_tuning=combined.get("hyperparameter_tuning", False),
+            n_trials=combined.get("n_trials", 20),
         )
 
     # -- evaluation resolution ----------------------------------------------

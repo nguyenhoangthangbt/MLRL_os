@@ -31,6 +31,8 @@ class MLRLSettings(BaseSettings):
     max_training_rows: int = 1_000_000
     cv_folds_default: int = 5
     seed_default: int = 42
+    storage_backend: str = "file"
+    database_url: str = ""
 
 
 # ---------------------------------------------------------------------------
@@ -52,6 +54,7 @@ TS_DEFAULTS: dict[str, Any] = {
     "metrics": ["rmse", "mae", "mape"],
     "handle_imbalance": False,
     "hyperparameter_tuning": False,
+    "n_trials": 20,
     "selection": "best_cv",
     "generate_report": True,
     "plot_predictions": True,
@@ -74,6 +77,7 @@ ENTITY_DEFAULTS: dict[str, Any] = {
     "metrics": ["f1_weighted", "auc_roc", "precision", "recall"],
     "handle_imbalance": True,
     "hyperparameter_tuning": False,
+    "n_trials": 20,
     "selection": "best_cv",
     "generate_report": True,
     "plot_predictions": False,

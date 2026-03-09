@@ -16,6 +16,11 @@ from mlrl_os.core.types import (
     ProblemType,
     TaskType,
 )
+from mlrl_os.features.target_derivation import (
+    LEAKAGE_COLUMNS,
+    derive_target,
+    is_derived_target,
+)
 
 # Canonical state column groups (from CONTRACTS.md)
 ENTITY_STATE_COLS = [
@@ -67,12 +72,15 @@ class EntityFeatureEngine:
         add_wait_trend: bool = True,
         feature_columns: list[str] | None = None,
         exclude_columns: list[str] | None = None,
+        sla_column: str | None = None,
+        sla_threshold: float | None = None,
     ) -> FeatureMatrix:
         """Extract features from entity trajectory state vectors.
 
         Args:
             df: Polars DataFrame with trajectory data.
-            target: Target column name (e.g., "status", "sla_breach").
+            target: Target column name (e.g., "status", "sla_breach",
+                "delay_severity", "wait_ratio_class").
             observation_point: At which step(s) to observe entities.
             include_entity_state: Include 10 entity state features.
             include_node_state: Include 9 node state features.
@@ -81,10 +89,28 @@ class EntityFeatureEngine:
             add_wait_trend: Add wait_ratio trend derived feature.
             feature_columns: Explicit feature columns (overrides auto-selection).
             exclude_columns: Columns to exclude from auto-selection.
+            sla_column: Explicit SLA column for sla_breach derivation.
+            sla_threshold: Explicit SLA threshold in seconds.
 
         Returns:
             FeatureMatrix ready for classification model training.
         """
+        # Derive target if it's a computed target (sla_breach, delay_severity, etc.)
+        if is_derived_target(target):
+            df = derive_target(
+                df, target,
+                sla_column=sla_column,
+                sla_threshold=sla_threshold,
+            )
+            # Filter out entities that never completed ("unknown" label)
+            df = df.filter(pl.col(target) != "unknown")
+
+            # Auto-add leakage columns to exclude list
+            exclude_columns = list(exclude_columns or [])
+            exclude_columns.extend(
+                c for c in LEAKAGE_COLUMNS if c not in exclude_columns
+            )
+
         # Filter by observation point
         filtered = self._filter_by_observation_point(df, observation_point)
 
@@ -176,9 +202,12 @@ class EntityFeatureEngine:
             msg = "No valid numeric feature columns found"
             raise ValueError(msg)
 
-        # Drop rows with nulls in features or target
-        subset = valid_feature_cols + [target]
-        clean_df = filtered.drop_nulls(subset=subset)
+        # Fill numeric feature nulls with 0 (e.g. visit counts, source_idx)
+        # then drop rows that still have nulls in the target column
+        filtered = filtered.with_columns(
+            [pl.col(c).fill_null(0) for c in valid_feature_cols]
+        )
+        clean_df = filtered.drop_nulls(subset=[target])
 
         if len(clean_df) == 0:
             msg = "No valid samples after dropping nulls"
@@ -252,8 +281,14 @@ class EntityFeatureEngine:
                 "total_time",
                 "t_enter",
                 "t_complete",
+                "epriority",
+                "source_idx",
             }
         )
+        # Exclude SLA threshold columns (they define the target, not predict it)
+        for col in df.columns:
+            if col.startswith("sla_"):
+                exclude.add(col)
 
         candidates: list[str] = []
 

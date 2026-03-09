@@ -1,0 +1,130 @@
+[
+  {
+    "template": "healthcare_er",
+    "target": "delay_severity",
+    "observation": "all_steps",
+    "samples": 560,
+    "features": 91,
+    "best_algo": "lightgbm",
+    "metrics": {
+      "f1_weighted": 1.0,
+      "auc_roc": 1.0,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "duration": 5.06,
+    "status": "PASS"
+  },
+  {
+    "template": "healthcare_er",
+    "target": "delay_severity",
+    "observation": "entry_only",
+    "samples": 187,
+    "features": 91,
+    "best_algo": "random_forest",
+    "metrics": {
+      "f1_weighted": 0.9237831920570588,
+      "auc_roc": 0.9928719288301832,
+      "precision": 0.924997360161692,
+      "recall": 0.9251336898395722
+    },
+    "duration": 4.2,
+    "status": "PASS"
+  },
+  {
+    "template": "healthcare_er",
+    "target": "sla_breach",
+    "observation": "all_steps",
+    "samples": 560,
+    "features": 91,
+    "best_algo": "random_forest",
+    "metrics": {
+      "f1_weighted": 0.9875672480168228,
+      "auc_roc": 0.9995367612997154,
+      "precision": 0.987832947424667,
+      "recall": 0.9875
+    },
+    "duration": 4.09,
+    "status": "PASS"
+  },
+  {
+    "template": "healthcare_er",
+    "target": "sla_breach",
+    "observation": "entry_only",
+    "samples": 187,
+    "features": 91,
+    "best_algo": "lightgbm",
+    "metrics": {
+      "f1_weighted": 1.0,
+      "auc_roc": 1.0,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "duration": 2.62,
+    "status": "PASS"
+  },
+  {
+    "template": "logistics_otd",
+    "target": "delay_severity",
+    "observation": "all_steps",
+    "samples": 3688,
+    "features": 84,
+    "best_algo": "lightgbm",
+    "metrics": {
+      "f1_weighted": 0.998915340223776,
+      "auc_roc": 0.9999941708043353,
+      "precision": 0.9989182498864126,
+      "recall": 0.9989154013015185
+    },
+    "duration": 10.41,
+    "status": "PASS"
+  },
+  {
+    "template": "logistics_otd",
+    "target": "delay_severity",
+    "observation": "entry_only",
+    "samples": 996,
+    "features": 84,
+    "best_algo": "random_forest",
+    "metrics": {
+      "f1_weighted": 0.9114460822389263,
+      "auc_roc": 0.9899467763898742,
+      "precision": 0.9130365638484264,
+      "recall": 0.9106425702811245
+    },
+    "duration": 5.32,
+    "status": "PASS"
+  },
+  {
+    "template": "logistics_otd",
+    "target": "sla_breach",
+    "observation": "all_steps",
+    "samples": 3688,
+    "features": 84,
+    "best_algo": "random_forest",
+    "metrics": {
+      "f1_weighted": 1.0,
+      "auc_roc": 0.0,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "duration": 2.42,
+    "status": "PASS"
+  },
+  {
+    "template": "logistics_otd",
+    "target": "sla_breach",
+    "observation": "entry_only",
+    "samples": 996,
+    "features": 84,
+    "best_algo": "random_forest",
+    "metrics": {
+      "f1_weighted": 1.0,
+      "auc_roc": 0.0,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "duration": 2.27,
+    "status": "PASS"
+  }
+]

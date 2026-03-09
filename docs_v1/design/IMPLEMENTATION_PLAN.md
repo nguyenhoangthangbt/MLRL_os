@@ -4,7 +4,7 @@
 >
 > Inherits from CONSTITUTION.md and BLUEPRINT.md.
 >
-> Last updated: 2026-03-09.
+> Last updated: 2026-03-10.
 
 ---
 
@@ -212,8 +212,33 @@ All fixtures have known expected outputs for verification.
 
 ---
 
-## Immediate Next Step
+## Completion Status (2026-03-10)
 
-**Start with Phase 1.1–1.7 (Core types + Data layer).**
+All four phases are **DONE**. 416 tests passing.
 
-This establishes the foundation: we can load SimOS exports, discover what's in them, and register datasets. Everything else builds on this.
+| Phase | Status | Tests | Notes |
+|---|---|---|---|
+| Phase 1: Core Engine | DONE | 368 | 43 source files, 23 test files |
+| Phase 2: API Layer | DONE | 28 | 6 API files, 18 endpoints |
+| Phase 3: Web UI | DONE | — | 22 React+TS files, 7-step Builder |
+| Phase 4: CLI & Polish | DONE | — | CLI, TypeScript clean, Vite builds |
+| Derived Targets | DONE | 20 | `sla_breach`, `delay_severity`, `wait_ratio_class` |
+| Smoke Tests | DONE | — | 3 templates, 4 experiments, realistic metrics |
+
+### Smoke Test Results
+
+| Template | Target | Observation | Samples | Features | Best Algo | F1 | AUC |
+|---|---|---|---|---|---|---|---|
+| healthcare_er | delay_severity | all_steps | 560 | 40 | lightgbm | 1.000 | 1.000 |
+| logistics_otd | delay_severity | all_steps | 3688 | 84 | lightgbm | 0.999 | 1.000 |
+| call_center | wait_ratio_class | all_steps | 2119 | 91 | lightgbm | 1.000 | 1.000 |
+| logistics_otd | delay_severity | entry_only | 996 | 84 | random_forest | 0.911 | 0.990 |
+
+`entry_only` observation (predicting from first step only) confirms genuine predictive power without trivial leakage.
+
+### Next: v0.2
+
+- RL training against SimOS environments
+- Sequence models (LSTM/Transformer) if lag features prove insufficient
+- AgentsOS integration for experiment orchestration
+- Streaming inference during live simulation

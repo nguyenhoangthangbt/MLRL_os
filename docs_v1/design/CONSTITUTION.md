@@ -4,7 +4,7 @@
 >
 > This document is the authority on terminology and design philosophy. Every other design document inherits from it. If a term is used elsewhere and not defined here, that is a bug.
 >
-> Last updated: 2026-03-09.
+> Last updated: 2026-03-10.
 
 ---
 
@@ -29,23 +29,26 @@ ML/RL OS inverts the typical ML workflow:
 | Track experiments in spreadsheets | Built-in experiment registry with provenance |
 | Struggle with reproducibility | Seed + config = identical results, guaranteed |
 
-### What Has Shipped (v0.1 Target)
+### What Has Shipped (v0.1 — COMPLETE as of 2026-03-10)
 
-Target capabilities for v0.1:
+All v0.1 capabilities are implemented, tested (416 tests), and smoke-tested across 3 SimOS templates:
 
 - **Two prediction problem types:** time-series forecasting and entity classification
+- **Derived targets:** `sla_breach`, `delay_severity`, `wait_ratio_class` — computed from raw trajectory data with automatic leakage prevention
 - **Experiment Builder:** visual interface to select features, targets, and model settings
 - **Validation gate:** experiments must pass validation before training begins
 - **Config-driven experiments:** YAML configuration with sensible defaults
 - **Auto-discovery:** system inspects data and exposes available features/targets
 - **Three-tier configuration:** zero-config (auto-pilot), YAML overrides, or Builder UI
-- **SimOS data ingestion:** native support for SimOS 5-layer ML export format
+- **SimOS data ingestion:** native support for SimOS 5-layer ML export format, with `sla_*`/`domain_*` field passthrough
 - **External data support:** CSV and Parquet ingestion with schema validation
-- **Model engine:** LightGBM, XGBoost, Random Forest with unified interface
+- **Model engine:** LightGBM, XGBoost, Random Forest, ExtraTrees, Linear with unified interface
 - **Evaluation engine:** metrics, comparison, and report generation
 - **Model registry:** versioned model storage with full training provenance
 - **Experiment tracker:** history of all experiments with artifacts
-- **REST API:** FastAPI endpoints for programmatic access
+- **REST API:** 18 FastAPI endpoints for programmatic access
+- **Web UI:** React 19 + Vite + Tailwind, 7-step Builder, Dashboard, Results
+- **CLI:** `serve`, `run`, `validate`, `datasets list/import`
 
 ### What Ships in v0.2
 

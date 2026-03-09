@@ -38,6 +38,8 @@ class ResolvedEntityFeatures(BaseModel):
     add_wait_trend: bool
     feature_columns: list[str]
     exclude_columns: list[str] = []
+    sla_column: str | None = None
+    sla_threshold: float | None = None
 
 
 class ResolvedCVConfig(BaseModel):
@@ -55,6 +57,7 @@ class ResolvedModelConfig(BaseModel):
     cross_validation: ResolvedCVConfig
     handle_imbalance: bool
     hyperparameter_tuning: bool
+    n_trials: int
 
 
 class ResolvedEvaluationConfig(BaseModel):
