@@ -225,3 +225,20 @@ class TestHyperparameterTuning:
         r1 = engine.train_and_evaluate(**kwargs)
         r2 = engine.train_and_evaluate(**kwargs)
         assert r1.best_metrics["accuracy"] == r2.best_metrics["accuracy"]
+
+    def test_tuning_custom_n_trials(self) -> None:
+        """n_trials parameter is accepted and produces valid results."""
+        fm = _classification_matrix(n=80, p=3)
+        engine = ModelEngine()
+        result = engine.train_and_evaluate(
+            feature_matrix=fm,
+            algorithm_names=["linear"],
+            metric_names=["accuracy"],
+            cv_strategy=CVStrategy.STRATIFIED_KFOLD,
+            cv_folds=3,
+            seed=42,
+            hyperparameter_tuning=True,
+            n_trials=5,
+        )
+        assert result.best_algorithm == "linear"
+        assert result.best_metrics["accuracy"] > 0.5

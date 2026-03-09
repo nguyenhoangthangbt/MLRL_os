@@ -60,6 +60,7 @@ def _model_config(**overrides: object) -> ResolvedModelConfig:
         cross_validation=ResolvedCVConfig(strategy=CVStrategy.TEMPORAL, folds=5),
         handle_imbalance=False,
         hyperparameter_tuning=False,
+        n_trials=20,
     )
     defaults.update(overrides)
     return ResolvedModelConfig(**defaults)

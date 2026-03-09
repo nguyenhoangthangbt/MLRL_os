@@ -64,6 +64,7 @@ def _make_model(**overrides: object) -> ResolvedModelConfig:
         cross_validation=_make_cv(),
         handle_imbalance=False,
         hyperparameter_tuning=False,
+        n_trials=20,
     )
     defaults.update(overrides)
     return ResolvedModelConfig(**defaults)
@@ -161,7 +162,12 @@ class TestResolvedModelConfig:
         assert model.selection == "best_cv"
         assert model.handle_imbalance is False
         assert model.hyperparameter_tuning is False
+        assert model.n_trials == 20
         assert model.cross_validation.strategy == CVStrategy.TEMPORAL
+
+    def test_custom_n_trials(self) -> None:
+        model = _make_model(n_trials=50)
+        assert model.n_trials == 50
 
 
 class TestResolvedEvaluationConfig:

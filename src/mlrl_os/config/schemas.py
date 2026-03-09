@@ -57,6 +57,7 @@ class ResolvedModelConfig(BaseModel):
     cross_validation: ResolvedCVConfig
     handle_imbalance: bool
     hyperparameter_tuning: bool
+    n_trials: int
 
 
 class ResolvedEvaluationConfig(BaseModel):

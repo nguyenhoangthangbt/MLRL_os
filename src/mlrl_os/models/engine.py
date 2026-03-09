@@ -63,6 +63,7 @@ class ModelEngine:
         selection: str = "best_cv",
         handle_imbalance: bool = False,
         hyperparameter_tuning: bool = False,
+        n_trials: int = DEFAULT_N_TRIALS,
     ) -> TrainingResult:
         """Train all algorithms with CV, select best, retrain on full data.
 
@@ -78,6 +79,8 @@ class ModelEngine:
                 keyword argument to each algorithm's ``train`` method.
             hyperparameter_tuning: If *True*, run a randomized search over
                 per-algorithm hyperparameter spaces before final training.
+            n_trials: Number of Optuna trials when *hyperparameter_tuning* is
+                enabled.
 
         Returns:
             A :class:`TrainingResult` with the best model, predictions, and
@@ -127,6 +130,7 @@ class ModelEngine:
                         cv_folds=cv_folds,
                         seed=seed,
                         handle_imbalance=handle_imbalance,
+                        n_trials=n_trials,
                     )
                 else:
                     mean_metrics, std_metrics = self._cross_validate(

@@ -145,6 +145,7 @@ class ExperimentRunner:
                 selection=config.model.selection,
                 handle_imbalance=config.model.handle_imbalance,
                 hyperparameter_tuning=config.model.hyperparameter_tuning,
+                n_trials=config.model.n_trials,
             )
 
             # Step 6: Save best model to model registry

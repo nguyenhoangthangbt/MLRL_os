@@ -116,6 +116,7 @@ class ExperimentRequest(BaseModel):
     metrics: list[str] | None = None
     handle_imbalance: bool | None = None
     hyperparameter_tuning: bool | None = None
+    n_trials: int | None = None
     generate_report: bool | None = None
 
     def to_user_config(self) -> dict[str, Any]:
