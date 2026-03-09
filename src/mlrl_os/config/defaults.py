@@ -31,6 +31,8 @@ class MLRLSettings(BaseSettings):
     max_training_rows: int = 1_000_000
     cv_folds_default: int = 5
     seed_default: int = 42
+    storage_backend: str = "file"
+    database_url: str = ""
 
 
 # ---------------------------------------------------------------------------
