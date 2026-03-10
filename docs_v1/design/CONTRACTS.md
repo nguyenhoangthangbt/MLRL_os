@@ -6,7 +6,7 @@
 >
 > Inherits from CONSTITUTION.md and BLUEPRINT.md.
 >
-> Last updated: 2026-03-09.
+> Last updated: 2026-03-10.
 
 ---
 
@@ -245,7 +245,7 @@ If no mapping provided, column names are used as-is (user's responsibility).
   "summary": { ... },
   "event_stream": [ ... ],       // Layer 1 — NOT used in v0.1
   "trajectories": [ ... ],       // Layer 2 — entity classification
-  "snapshots": [ ... ],          // Layer 3 — time-series forecasting
+  "state_snapshots": [ ... ],    // Layer 3 — time-series forecasting
   "stress_scenarios": [ ... ]    // Layer 5 — NOT used in v0.1
 }
 ```
@@ -1059,6 +1059,9 @@ Content-Type: multipart/form-data
 Form fields:
   file: <binary>                         # JSON, CSV, or Parquet file
   name: string (optional)                # dataset name
+  source_instrument: string (optional)   # origin instrument ("simos")
+  source_job_id: string (optional)       # SimOS job_id for provenance
+  source_template: string (optional)     # SimOS template name
 
 Response 201:
 {
@@ -1302,6 +1305,132 @@ Response 200 (classification):
   "task_type": "classification"
 }
 ```
+
+### 5.7 RL Experiment Submission (v0.2)
+
+```
+POST /api/v1/rl/experiments
+Content-Type: application/json
+
+Request body:
+{
+  "name": "dqn_healthcare_throughput",
+  "template": "healthcare_er",
+  "algorithm": "dqn",
+  "max_episodes": 100,
+  "seed": 42,
+  "simos_url": "ws://localhost:8000",
+  "reward_function": "throughput"
+}
+
+Response 202 (accepted, training started):
+{
+  "experiment_id": "exp_20260310_...",
+  "status": "running",
+  "name": "dqn_healthcare_throughput"
+}
+```
+
+**Fields:**
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `name` | string | required | Experiment name |
+| `template` | string | `"healthcare_er"` | SimOS template for environment |
+| `algorithm` | string | `"dqn"` | RL algorithm (`dqn`, `ppo`) |
+| `max_episodes` | int | `100` | Max training episodes |
+| `seed` | int | `42` | Random seed |
+| `simos_url` | string | `"ws://localhost:8000"` | SimOS WebSocket URL |
+| `reward_function` | string | `"throughput"` | Reward function (`throughput`, `sla`, `cost`, `composite`) |
+
+### 5.8 RL Experiment & Policy Listing (v0.2)
+
+```
+GET /api/v1/rl/experiments
+
+Response 200:
+[
+  {
+    "experiment_id": "exp_20260310_...",
+    "name": "dqn_healthcare_throughput",
+    "status": "completed",
+    "experiment_type": "reinforcement_learning",
+    "created_at": "2026-03-10T10:00:00Z",
+    ...
+  }
+]
+```
+
+```
+GET /api/v1/rl/policies
+
+Response 200:
+[
+  {
+    "policy_id": "pol_20260310_...",
+    "algorithm": "dqn",
+    "template": "healthcare_er"
+  }
+]
+```
+
+### 5.9 WebSocket Streaming Inference (v0.2)
+
+**ML Prediction Stream:**
+
+```
+WS /ws/v1/predict/{model_id}
+
+Client → Server (JSON):
+{
+  "observations": [[1.0, 2.0, 3.0, ...], [4.0, 5.0, 6.0, ...]]
+}
+
+Server → Client (JSON):
+{
+  "predictions": [41.3, 38.7],
+  "model_id": "mdl_...",
+  "timestamp": 1710072000.0,
+  "probabilities": [[0.85, 0.03, 0.12], ...]  // classification only
+}
+
+Error: Server closes with code 4004 if model_id not found.
+```
+
+**RL Policy Stream (v0.2 stub):**
+
+```
+WS /ws/v1/policy/{policy_id}
+
+Currently closes immediately with code 4004. Full protocol TBD in v0.3
+when RL policies are trained against live SimOS.
+```
+
+### 5.10 HTTP Status Code Summary
+
+| Endpoint | Method | Success | Error Codes |
+|---|---|---|---|
+| `/api/v1/datasets` | POST | 201 Created | 422 (invalid file) |
+| `/api/v1/datasets` | GET | 200 OK | — |
+| `/api/v1/datasets/{id}` | GET | 200 OK | 404 (not found) |
+| `/api/v1/datasets/{id}/schema` | GET | 200 OK | 404 (not found) |
+| `/api/v1/datasets/{id}/available-targets` | GET | 200 OK | 404 (not found) |
+| `/api/v1/datasets/{id}/preview` | GET | 200 OK | 404 (not found) |
+| `/api/v1/experiments` | POST | 202 Accepted | 422 (validation failed) |
+| `/api/v1/experiments` | GET | 200 OK | — |
+| `/api/v1/experiments/{id}` | GET | 200 OK | 404 (not found) |
+| `/api/v1/experiments/{id}/report` | GET | 200 OK | 404 (not found) |
+| `/api/v1/experiments/validate` | POST | 200 OK | 422 (invalid body) |
+| `/api/v1/experiments/defaults/{problem_type}` | GET | 200 OK | — |
+| `/api/v1/models` | GET | 200 OK | — |
+| `/api/v1/models/{id}` | GET | 200 OK | 404 (not found) |
+| `/api/v1/models/{id}/predict` | POST | 200 OK | 404 (not found), 422 (invalid data) |
+| `/api/v1/models/{id}/feature-importance` | GET | 200 OK | 404 (not found) |
+| `/api/v1/config/resolve` | POST | 200 OK | 422 (invalid config) |
+| `/api/v1/health` | GET | 200 OK | — |
+| `/api/v1/rl/experiments` | POST | 202 Accepted | 422 (invalid config) |
+| `/api/v1/rl/experiments` | GET | 200 OK | — |
+| `/api/v1/rl/policies` | GET | 200 OK | — |
 
 ---
 

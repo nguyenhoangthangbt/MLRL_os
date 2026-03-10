@@ -57,7 +57,14 @@ class DatasetRegistry:
     # Public API
     # ------------------------------------------------------------------
 
-    def register(self, raw: RawDataset, name: str = "") -> DatasetMeta:
+    def register(
+        self,
+        raw: RawDataset,
+        name: str = "",
+        source_instrument: str | None = None,
+        source_job_id: str | None = None,
+        source_template: str | None = None,
+    ) -> DatasetMeta:
         """Register a RawDataset. Saves data as Parquet and metadata as JSON.
 
         Returns DatasetMeta with generated ID, content hash, etc.
@@ -112,6 +119,9 @@ class DatasetRegistry:
             has_trajectories=raw.has_trajectories,
             simos_metadata=raw.metadata_dict if raw.metadata_dict else None,
             simos_summary=raw.summary_dict if raw.summary_dict else None,
+            source_instrument=source_instrument,
+            source_job_id=source_job_id,
+            source_template=source_template,
             registered_at=timestamp,
         )
 

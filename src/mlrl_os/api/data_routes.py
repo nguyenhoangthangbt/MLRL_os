@@ -27,6 +27,9 @@ async def upload_dataset(
     request: Request,
     file: UploadFile,
     name: str | None = Form(default=None),
+    source_instrument: str | None = Form(default=None),
+    source_job_id: str | None = Form(default=None),
+    source_template: str | None = Form(default=None),
 ) -> DatasetUploadResponse:
     """Upload and register a dataset (JSON SimOS export, CSV, or Parquet)."""
     registry = request.app.state.dataset_registry
@@ -48,7 +51,13 @@ async def upload_dataset(
             raw = ExternalLoader().load_csv(tmp_path)
 
         dataset_name = name or (file.filename or "unnamed_dataset")
-        meta = registry.register(raw, name=dataset_name)
+        meta = registry.register(
+            raw,
+            name=dataset_name,
+            source_instrument=source_instrument,
+            source_job_id=source_job_id,
+            source_template=source_template,
+        )
     finally:
         tmp_path.unlink(missing_ok=True)
 

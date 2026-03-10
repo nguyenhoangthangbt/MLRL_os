@@ -113,8 +113,8 @@ This is stored in `DatasetMeta` and propagated to `ExperimentResult`. Low effort
 
 | ID | Severity | Status | Completed | Notes |
 |---|---|---|---|---|
-| M-02 | MEDIUM | TODO | | |
-| M-05 | MEDIUM | TODO | | |
-| M-06 | MEDIUM | TODO | | |
-| M-01 | LOW | TODO | | |
-| M-04 | LOW | TODO | | |
+| M-02 | MEDIUM | DONE | 2026-03-10 | Added §5.7 (RL experiments), §5.8 (RL listing/policies), §5.9 (WS inference) to CONTRACTS.md |
+| M-05 | MEDIUM | DEFERRED | | Valid finding. Requires platform-wide design decision (API key vs gateway vs mTLS). Recommend aligning with SimOS `X-API-Key` pattern. Awaiting owner approval. |
+| M-06 | MEDIUM | DONE | 2026-03-10 | Added `source_instrument`, `source_job_id`, `source_template` to DatasetMeta, DatasetRegistry.register(), upload endpoint, DatasetDetailResponse, and CONTRACTS.md §5.1 |
+| M-01 | LOW | DONE | 2026-03-10 | Fixed `"snapshots"` → `"state_snapshots"` in CONTRACTS.md §2.1 |
+| M-04 | LOW | DONE | 2026-03-10 | Added §5.10 HTTP Status Code Summary table covering all 21 endpoints to CONTRACTS.md |

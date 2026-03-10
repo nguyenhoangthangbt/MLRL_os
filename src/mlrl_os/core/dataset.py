@@ -33,6 +33,10 @@ class DatasetMeta(BaseModel):
     simos_metadata: dict[str, Any] | None = None
     simos_summary: dict[str, Any] | None = None
 
+    source_instrument: str | None = None
+    source_job_id: str | None = None
+    source_template: str | None = None
+
     registered_at: str = ""
 
 
