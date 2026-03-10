@@ -118,3 +118,34 @@ This is stored in `DatasetMeta` and propagated to `ExperimentResult`. Low effort
 | M-06 | MEDIUM | DONE | 2026-03-10 | Added `source_instrument`, `source_job_id`, `source_template` to DatasetMeta, DatasetRegistry.register(), upload endpoint, DatasetDetailResponse, and CONTRACTS.md §5.1 |
 | M-01 | LOW | DONE | 2026-03-10 | Fixed `"snapshots"` → `"state_snapshots"` in CONTRACTS.md §2.1 |
 | M-04 | LOW | DONE | 2026-03-10 | Added §5.10 HTTP Status Code Summary table covering all 21 endpoints to CONTRACTS.md |
+| M-07 | LOW | TODO | | Health endpoint missing `storage_backend` field — found in E2E test CC-05 |
+| M-08 | LOW | TODO | | POST endpoints return 307 redirect without trailing slash — found in E2E test DP-01 |
+
+### E2E Integration Test Results (2026-03-10)
+
+Phase 1 E2E tests validated ML/RL OS in the cross-platform pipeline. All critical tests **PASSED** with 2 minor findings.
+
+| Test | Result | Notes |
+|---|---|---|
+| DP-01 healthcare_er pipeline | PASS | Dataset upload (multipart), provenance (`source_type=simos`), target discovery (`sla_breach`, `status`, `delay_severity`), entity_classification training (F1=1.0, AUC=1.0, LightGBM) |
+| DP-01 logistics_otd pipeline | PASS | 44.3 MB multipart upload handled correctly, 3688 trajectories, F1=1.0 |
+| SR-05 Seed Reproducibility | PASS | Two identical runs with seed=42 produced identical metrics (F1=1.0, AUC=1.0, best_algorithm=lightgbm) |
+| CC-05 Health Contract | CONDITIONAL PASS | `status` present, `storage_backend` missing from response (see M-07) |
+
+**New findings:**
+
+#### M-07 — LOW: Health endpoint missing `storage_backend` field
+
+**Problem:** `GET /api/v1/health` returns only `{"status":"ok","version":"0.1.0"}`. The cross-platform contract (CC-05) expects a `storage_backend` field (e.g., `"file"` or `"postgres"`) matching SimOS health response pattern.
+
+**Impact:** Informational only. Cross-platform health monitoring cannot determine MLRL storage backend type. Does not affect functionality.
+
+**Fix:** Add `storage_backend` field to health endpoint response in `api/app.py`.
+
+#### M-08 — LOW: POST endpoints require trailing slash
+
+**Problem:** `POST /api/v1/datasets` (without trailing slash) returns `307 Temporary Redirect` to `/api/v1/datasets/`. Clients must use trailing slash or follow redirects (`curl -L`). This differs from SimOS which accepts both forms.
+
+**Impact:** Minor DX issue. E2E test pipeline needed adjustment. AgentsOS `MLRLOSClient` should use trailing slashes or enable redirect-following.
+
+**Fix:** Either add `redirect_slashes=False` to FastAPI app config, or document the trailing-slash requirement in CONTRACTS.md.
