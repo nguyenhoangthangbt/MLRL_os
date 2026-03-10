@@ -161,7 +161,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--database-url",
-        default="postgresql://simos:simos_dev@localhost:5432/MLRL_os",
+        default="postgresql://mlrlos:mlrlos_dev@localhost:5432/MLRL_os",
         help="PostgreSQL connection string (default: %(default)s)",
     )
     parser.add_argument(
