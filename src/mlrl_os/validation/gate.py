@@ -385,7 +385,12 @@ class ValidationGate:
         df: pl.DataFrame,
         errors: list[ValidationError],
     ) -> None:
-        """VT-03: lookback must produce >= 50 windows from the data."""
+        """VT-03: lookback must produce >= 50 sliding windows from the data.
+
+        Sliding windows: each data point after the lookback period is one
+        usable sample.  The count is ``(data_duration - lookback - horizon)
+        / bucket_interval``, **not** ``data_duration / lookback``.
+        """
         features = config.features
         if not isinstance(features, ResolvedTimeSeriesFeatures):
             return
@@ -406,16 +411,31 @@ class ValidationGate:
                 data_duration = (ts_max - ts_min).total_seconds()
 
             lookback_secs = parse_duration(features.lookback)
+            horizon_secs = parse_duration(features.horizon)
             if lookback_secs <= 0:
                 return
-            windows = data_duration / lookback_secs
+
+            # Estimate bucket interval from median gap between consecutive timestamps
+            n_rows = len(df)
+            if n_rows < 2:
+                return
+            bucket_interval = data_duration / (n_rows - 1)
+            if bucket_interval <= 0:
+                return
+
+            # Sliding windows: each point after lookback+horizon is a sample
+            usable_duration = data_duration - lookback_secs - horizon_secs
+            if usable_duration <= 0:
+                # VT-02 already catches lookback+horizon > data_duration
+                return
+            windows = usable_duration / bucket_interval
             if windows < 50:
                 errors.append(ValidationError(
                     code="VT-03",
                     field="features.lookback",
                     message=(
-                        f"Lookback of {features.lookback} produces ~{windows:.0f} windows "
-                        "from the data (minimum 50 required)."
+                        f"Lookback of {features.lookback} produces ~{windows:.0f} "
+                        "usable sliding windows from the data (minimum 50 required)."
                     ),
                     suggestion="Reduce lookback duration or provide a longer dataset.",
                 ))
