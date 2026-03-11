@@ -7,10 +7,10 @@ contract from internal representations.
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import Any
 
 from pydantic import BaseModel, Field
-
 
 # ---------------------------------------------------------------------------
 # Health
@@ -20,6 +20,8 @@ from pydantic import BaseModel, Field
 class HealthResponse(BaseModel):
     status: str = "ok"
     version: str = "0.1.0"
+    storage_backend: str = "postgresql"
+    updated_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
 
 
 # ---------------------------------------------------------------------------

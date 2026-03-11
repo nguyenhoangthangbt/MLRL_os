@@ -46,3 +46,5 @@ class TestHealthEndpoint:
         data = resp.json()
         assert data["status"] == "ok"
         assert data["version"] == "0.1.0"
+        assert data["storage_backend"] == "postgresql"
+        assert "updated_at" in data
