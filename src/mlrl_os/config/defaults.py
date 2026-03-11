@@ -41,9 +41,9 @@ class MLRLSettings(BaseSettings):
 
 TS_DEFAULTS: dict[str, Any] = {
     "target": "avg_wait",
-    "lookback": "8h",
+    "lookback": "4h",
     "horizon": "1h",
-    "lag_intervals": ["1h", "2h", "4h", "8h"],
+    "lag_intervals": ["1h", "2h", "4h"],
     "rolling_windows": ["2h", "4h"],
     "include_trend": True,
     "include_ratios": True,

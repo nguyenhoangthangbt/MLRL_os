@@ -210,9 +210,9 @@ class ConfigResolver:
         if problem_type == ProblemType.TIME_SERIES:
             return ResolvedTimeSeriesFeatures(
                 target=target,
-                lookback=combined.get("lookback", "8h"),
+                lookback=combined.get("lookback", "4h"),
                 horizon=combined.get("horizon", "1h"),
-                lag_intervals=combined.get("lag_intervals", ["1h", "2h", "4h", "8h"]),
+                lag_intervals=combined.get("lag_intervals", ["1h", "2h", "4h"]),
                 rolling_windows=combined.get("rolling_windows", ["2h", "4h"]),
                 include_trend=combined.get("include_trend", True),
                 include_ratios=combined.get("include_ratios", True),

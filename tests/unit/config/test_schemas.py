@@ -23,7 +23,7 @@ from mlrl_os.core.types import CVStrategy, ObservationPoint, ProblemType
 def _make_ts_features(**overrides: object) -> ResolvedTimeSeriesFeatures:
     defaults = dict(
         target="avg_wait",
-        lookback="8h",
+        lookback="4h",
         horizon="1h",
         lag_intervals=["1h", "2h", "4h"],
         rolling_windows=["2h", "4h"],
@@ -114,7 +114,7 @@ class TestResolvedTimeSeriesFeatures:
     def test_construction(self) -> None:
         feat = _make_ts_features()
         assert feat.target == "avg_wait"
-        assert feat.lookback == "8h"
+        assert feat.lookback == "4h"
         assert feat.horizon == "1h"
         assert feat.lag_intervals == ["1h", "2h", "4h"]
         assert feat.rolling_windows == ["2h", "4h"]

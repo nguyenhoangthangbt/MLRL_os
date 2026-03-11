@@ -58,7 +58,7 @@ class TestGetDefaults:
     def test_time_series_returns_ts_defaults(self) -> None:
         defaults = get_defaults(ProblemType.TIME_SERIES)
         assert defaults["target"] == "avg_wait"
-        assert defaults["lookback"] == "8h"
+        assert defaults["lookback"] == "4h"
         assert defaults["horizon"] == "1h"
 
     def test_entity_returns_entity_defaults(self) -> None:
