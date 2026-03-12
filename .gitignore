@@ -26,4 +26,4 @@ tests/fixtures/queue_rejection_export.json
 
 # Web UI build
 web/node_modules/
-web/dist/
+web/dist/.claude/
