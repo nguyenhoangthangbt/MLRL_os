@@ -4,6 +4,8 @@
 
 ## Architecture Overview
 
+**CLAUDE MEMORY:** `docs_v1/claude_memory/` — portable memory (synced via Google Drive). Read `MEMORY.md` at session start.
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  Web UI (web/)                                   Port 5175  │
