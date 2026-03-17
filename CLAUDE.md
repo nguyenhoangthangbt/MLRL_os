@@ -1,6 +1,8 @@
-# ML/RL OS — Development Guide for Claude Code
+# ML/RL OS — RETIRED (2026-03-17)
 
-> **Context:** ML/RL OS is a predictive intelligence instrument for operational systems. It consumes structured operational data (primarily from Simulation OS exports) and produces trained models, forecasts, entity classifications, RL policies, and evaluation reports through a validated experiment pipeline. v0.2 complete (2026-03-10).
+> **Status: ARCHIVED.** Predicting from simulated data has limited real-world value for supply chain/operations. SimOS (simulation + optimization) is sufficient for operations decisions. Code preserved for reference but no active development.
+
+> **Original context:** ML/RL OS was a predictive intelligence instrument for operational systems. It consumed structured operational data (primarily from Simulation OS exports) and produced trained models, forecasts, entity classifications, RL policies, and evaluation reports through a validated experiment pipeline. v0.2 complete (2026-03-10).
 
 ## Architecture Overview
 
